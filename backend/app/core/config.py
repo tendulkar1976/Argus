@@ -1,9 +1,15 @@
-"""Centralized Application Configuration for Argus."""
+"""Centralized Application Configuration for Argus.
 
+Enforces Part A Zero-Hardcoding standard:
+- Validated environment-driven settings with safe, documented defaults
+- Centralized model parameters, timeouts, and heuristics
+- Strict isolation of environment configs
+"""
+
+import json
 from typing import List, Union
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
-import json
 
 
 class Settings(BaseSettings):
@@ -24,6 +30,20 @@ class Settings(BaseSettings):
 
     HOST: str = "0.0.0.0"
     PORT: int = 8000
+
+    # Local Ollama Inference Settings (Phase 3 & 3.1)
+    OLLAMA_BASE_URL: str = "http://127.0.0.1:11434"
+    OLLAMA_MODEL: str = "qwen2.5:1.5b"
+    OLLAMA_TIMEOUT_SECONDS: float = 60.0
+    OLLAMA_STATUS_TIMEOUT_SECONDS: float = 4.0
+
+    # Model Generation Hyperparameters
+    OLLAMA_TEMPERATURE: float = 0.2
+    OLLAMA_TOP_P: float = 0.9
+
+    # Optimization & Token Estimation Heuristics
+    CHARS_PER_TOKEN_HEURISTIC: float = 4.0
+    MAX_VALIDATION_RETRY_ATTEMPTS: int = 1
 
     CORS_ORIGINS: Union[List[str], str] = [
         "http://localhost:5173",
