@@ -28,10 +28,26 @@ export function useHealth(autoCheck = false): UseHealthReturn {
   }, []);
 
   useEffect(() => {
+    let mounted = true;
     if (autoCheck) {
-      void fetchHealth();
+      apiService.getHealth()
+        .then((data) => {
+          if (mounted) {
+            setHealth(data);
+            setIsLoading(false);
+          }
+        })
+        .catch((err) => {
+          if (mounted) {
+            setError(err instanceof Error ? err.message : 'Failed to reach API');
+            setIsLoading(false);
+          }
+        });
     }
-  }, [autoCheck, fetchHealth]);
+    return () => {
+      mounted = false;
+    };
+  }, [autoCheck]);
 
   return { health, isLoading, error, refetch: fetchHealth };
 }
