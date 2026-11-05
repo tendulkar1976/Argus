@@ -357,6 +357,71 @@ Phase 3.2 introduces strict architectural guardrails against interactive role in
 
 ---
 
+## 🚀 Frontier Model Gateway & Telemetry (Phase 4.1 & 4.2)
+
+Argus provides an end-to-end middleware gateway dispatching optimized prompts to frontier models (default: `gpt-6.1-sol`) while isolating credentials, computing verified costs, and preventing double-optimization.
+
+### 1. End-to-End Gateway Architecture Flow
+
+```
+[ Client Request: POST /api/gateway/dispatch ]
+                   │
+                   ▼
+    [ Safety Check: ENABLE_UPSTREAM_DISPATCH? ]
+        ├── False ──▶ [ 403 Forbidden: Upstream Dispatch Disabled by Default ]
+        └── True  ──▶ [ Optimization Engine ]
+                            │
+                            ▼
+    [ Single-Pass Prompt Optimization (Ollama) ]
+        └── Standard Dispatch: Unconditionally optimizes and validates candidate via OllamaService
+                            │
+                            ▼ (Effective Prompt: Validated rewrite or safe fallback original)
+    [ Provider Abstraction: OpenAIProvider (AsyncOpenAI SDK) ]
+        ├── Model: gpt-6.1-sol (Reasoning effort: medium)
+        └── Handles timeouts, rate limits, and network errors safely
+
+                            │
+                            ▼
+    [ Telemetry & Cost Accounting Engine ]
+        ├── Upstream Usage: Extract prompt, completion, cached, reasoning tokens
+        ├── Verified Pricing: Decimal-safe cost math via Centralized Pricing Registry
+        └── Heuristic Savings: Transparent projection comparing baseline vs. optimized tokens
+```
+
+### 2. Configuration & Safety Controls
+
+| Environment Variable | Default | Description & Security Policy |
+| :--- | :--- | :--- |
+| `ENABLE_UPSTREAM_DISPATCH` | `false` | **CRITICAL SAFETY GUARDRAIL**: Upstream dispatch is disabled by default to prevent unexpected API bills. Must be explicitly set to `true` to invoke frontier models. |
+| `OPENAI_API_KEY` | *(None)* | Secret API key for OpenAI. Strictly backend-only; never exposed to frontend, logs, or git. |
+| `OPENAI_MODEL` | `gpt-6.1-sol` | Configured frontier model identifier. |
+| `OPENAI_TIMEOUT_SECONDS` | `60.0` | Upstream network timeout limit. |
+| `OPENAI_MAX_RETRIES` | `2` | SDK retry limit for transient network/server errors (non-retryable errors are never retried). |
+| `OPENAI_REASONING_EFFORT` | `medium` | Scalable reasoning effort for reasoning-tier models (`low`, `medium`, `high`, `xhigh`, `max`). |
+
+> [!WARNING]
+> Enabling `ENABLE_UPSTREAM_DISPATCH=true` with a valid `OPENAI_API_KEY` will make live calls to OpenAI and **incur financial charges** against your account.
+
+### 3. Actual Usage vs. Estimated Token Savings
+
+Argus enforces a strict separation between verified billing and heuristic estimation:
+1. **Actual API Usage (`usage`)**:
+   - Extracted directly from `response.usage` returned by OpenAI (`prompt_tokens`, `completion_tokens`, `cached_tokens`, `reasoning_tokens`).
+   - `actual_cost_usd` is calculated using exact, verified rates from the centralized pricing registry (`app/core/pricing_registry.py`).
+   - Cached input tokens are billed at cached rates ($0.10/1M) and deducted from standard input tokens ($2.00/1M) to prevent double-counting.
+   - Reasoning tokens are accounted within `completion_tokens` ($10.00/1M) and are never double-billed.
+2. **Estimated Optimization Savings (`estimated_savings`)**:
+   - Compares heuristic token counts (~4 chars/token) of the original vs. optimized prompt.
+   - Labeled with a mandatory disclaimer: estimates are heuristic projections and do not represent guaranteed billing reductions.
+   - Never compares a heuristic local estimate directly with upstream BPE token counters.
+3. **When Cost is Unavailable**:
+   - If a model is not found in the verified registry: `pricing_status="pricing_unavailable"`, cost is `None`.
+   - If token usage is missing or incomplete: `pricing_status="usage_unavailable"`, cost is `None`.
+   - If prompt tokens exceed verified context boundaries: `pricing_status="unsupported_context_bounds"`, cost is `None`.
+   - **Zero cost is never fabricated for unknown rates.**
+
+---
+
 ## Testing & Verification
 
 ### Run Backend Tests (Pytest)
@@ -364,14 +429,12 @@ Phase 3.2 introduces strict architectural guardrails against interactive role in
 cd backend
 .\.venv\Scripts\pytest -v    # On Linux/macOS: pytest -v
 ```
-All 36 backend tests (including Cases A through H, Phase 3.2, Phase 3.2.1, and Phase 3.2.2 Tests A through H) pass.
 
 ### Run Frontend Tests (Vitest)
 ```bash
 cd frontend
 npm run test
 ```
-All 11 frontend test suites pass.
 
 ### Run Frontend Production Build
 ```bash
@@ -392,9 +455,11 @@ npm run build
 | **Phase 3.2** | **Semantic Preservation & Zero-Hardcoding** | Action/deliverable intent extraction, anti-turn-reversal validation, corrective retry/fallback, generalized taxonomies, centralized configuration. | ✅ **Complete** |
 | **Phase 3.2.1** | **Required-Operation Preservation Fix** | Multi-clause operation extraction, computation/transformation preservation validation, concept synonym mapping, retry/fallback integration. | ✅ **Complete** |
 | **Phase 3.2.2** | **Strategy Accuracy, Minimal Rewriting & Honest Metrics** | Profile refinement, unsupported addition prevention, accurate applied strategy metadata, consistent character delta (`final - original`), honest status badges. | ✅ **Complete** |
-| **Phase 4** | **Main LLM Dispatch & Provider Adapters** | Provider client integrations (OpenAI, Anthropic, Gemini), stream forwarding, and fallback handlers. | ⏳ Planned |
+| **Phase 4.1** | **Secure OpenAI Provider Setup** | Official OpenAI Python SDK integration, model configuration (`gpt-6.1-sol`), backend-only credential safety, provider isolation interface (`BaseLLMProvider`), focused tests. | ✅ **Complete** |
+| **Phase 4.2** | **Gateway Dispatch & Cost Telemetry** | End-to-end dispatch endpoint (`POST /api/gateway/dispatch`), single-pass optimization, verified pricing registry, decimal-safe cost math, cached/reasoning token double-counting prevention, opt-in dispatch safety guardrail (`ENABLE_UPSTREAM_DISPATCH`). | ✅ **Complete** |
 | **Phase 5** | **Dashboard & Optimization Telemetry** | Interactive prompt optimization playground, token savings metrics, cost estimation analytics. | ⏳ Planned |
 | **Phase 6** | **Cloud Deployment & Production Hardening** | Dockerization, Azure Container Apps / AWS ECS deployment, and observability. | ⏳ Planned |
+
 
 ---
 

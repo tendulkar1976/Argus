@@ -197,6 +197,16 @@ class TaskAnalyzer:
                 "score", "scores", "scoring",
             },
         ),
+        # Validation / Verification / Quality checks
+        "validate": (
+            "validate",
+            "validation",
+            {
+                "validate", "validates", "validating", "verify", "verifies", "verifying",
+                "check", "checks", "checking", "audit", "audits", "auditing", "test",
+                "tests", "testing", "assert", "asserts", "asserting",
+            },
+        ),
         # Transformation / Grouping / Sorting / Filtering / Cleaning
         "group": (
             "group",
@@ -380,6 +390,19 @@ class TaskAnalyzer:
 
         # 9. Detect Underspecification
         is_underspecified = any(re.search(pat, text, re.IGNORECASE) for pat in cls.VAGUE_PATTERNS)
+        if not is_underspecified:
+            word_count = len(text.split())
+            # Very short, open-ended prompts lacking technical operations, filenames, or specific format
+            if (
+                word_count <= 8
+                and len(required_operations) == 0
+                and len(filenames) == 0
+                and format_requested is None
+                and len(specific_keys) == 0
+                and len(prohibitions) == 0
+                and action in {"explain", "help", "describe", "outline", "guide", "overview"}
+            ):
+                is_underspecified = True
 
         # 10. Detect if prompt is already effective & concise
         is_already_effective = cls._check_already_effective(
@@ -695,11 +718,15 @@ class TaskAnalyzer:
             target_str = seg[match.end():].strip() if match else " ".join(words[found_verb_idx + 1:])
 
             # Check if this clause is purely the overarching deliverable creation declaration
-            # (e.g. "Create a Python program", "Write a Python script")
+            # (e.g. "Create a Python program", "Write a Python script", "Build a data pipeline in Python")
+            creation_verbs = {"create", "write", "build", "develop", "implement", "code", "generate", "make"}
             if (
-                canonical_verb in {"create", "write", "build", "develop", "implement", "code", "generate"}
+                (canonical_verb in creation_verbs or verb_word.lower() in creation_verbs)
                 and primary_deliverable
-                and primary_deliverable.lower() in target_str.lower()
+                and (
+                    primary_deliverable.lower() in target_str.lower()
+                    or any(term in target_str.lower() for term in {"script", "program", "code", "function", "pipeline", "application", "app"})
+                )
                 and not any(fn.lower() in target_str.lower() for fn in filenames)
             ):
                 continue

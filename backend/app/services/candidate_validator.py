@@ -50,12 +50,26 @@ class CandidateValidator:
     SOFTWARE_TERMS = {
         "program", "script", "code", "function", "class", "method", "app",
         "application", "python", "algorithm", "implement", "runnable", "module",
-        "endpoint", "query", "sql", "api", "software",
+        "endpoint", "query", "sql", "api", "software", "pipeline",
     }
 
     EXPLANATION_TERMS = {
         "explain", "explanation", "describe", "how", "concept", "walkthrough",
         "tutorial", "guide", "overview", "works",
+    }
+
+    DOCUMENT_TERMS = {
+        "summary", "report", "article", "document", "overview", "digest", "writeup", "draft",
+    }
+
+    PLAN_TERMS = {
+        "plan", "roadmap", "steps", "strategy", "schedule", "itinerary", "checklist",
+    }
+
+    KNOWN_LIBRARIES = {
+        "pandas", "numpy", "scipy", "sklearn", "scikit-learn", "tensorflow", "torch", "pytorch",
+        "matplotlib", "seaborn", "django", "flask", "fastapi", "celery", "airflow",
+        "sqlalchemy", "beautifulsoup", "bs4", "requests", "pydantic", "playwright", "selenium",
     }
 
     @classmethod
@@ -115,6 +129,26 @@ class CandidateValidator:
                     status="fallback",
                     reason="Candidate dropped the primary explanation objective.",
                     missing_constraints=["Missing objective: Explanation"],
+                )
+
+        if analysis.deliverable_family == "document":
+            cand_has_doc = any(re.search(rf"\b{re.escape(term)}\b", cand_lower) for term in cls.DOCUMENT_TERMS)
+            if not cand_has_doc:
+                return ValidationResult(
+                    is_valid=False,
+                    status="fallback",
+                    reason="Candidate dropped the primary document deliverable (summary, report, or document).",
+                    missing_constraints=["Missing deliverable: Document / Report"],
+                )
+
+        if analysis.deliverable_family == "plan":
+            cand_has_plan = any(re.search(rf"\b{re.escape(term)}\b", cand_lower) for term in cls.PLAN_TERMS)
+            if not cand_has_plan:
+                return ValidationResult(
+                    is_valid=False,
+                    status="fallback",
+                    reason="Candidate dropped the primary plan deliverable.",
+                    missing_constraints=["Missing deliverable: Plan"],
                 )
 
         # Check 5: Accidental loss of filenames
@@ -178,7 +212,7 @@ class CandidateValidator:
                 missing_constraints=[f"Missing operation: {d}" for d in missing_descs],
             )
 
-        # Check 9: Unsupported additions & hallucinations (Phase 3.2.2)
+        # Check 9: Unsupported additions & hallucinations (Phase 3.2.2 & 3.2.3)
         hallucinations = []
         orig_lower = original_prompt.lower()
 
@@ -211,6 +245,23 @@ class CandidateValidator:
             )
             if json_hallucinated and "json" not in orig_lower:
                 hallucinations.append("Unrequested mandatory JSON format")
+
+        # 9d. Unrequested third-party libraries / dependencies
+        for lib in cls.KNOWN_LIBRARIES:
+            if lib in cand_lower and lib not in orig_lower and lib not in analysis.prohibitions:
+                # Check if candidate mandates the library (e.g. using pandas, import pandas, install pandas, require pandas)
+                lib_pat = rf"\b(?:using|with|import|in|install|require|via)\s+{re.escape(lib)}\b|\b{re.escape(lib)}\s+(?:library|package|framework|module)\b"
+                if re.search(lib_pat, cand_lower):
+                    hallucinations.append(f"Unrequested third-party library: {lib}")
+
+        # 9e. Unrequested extra deliverable artifacts
+        if analysis.deliverable_family == "software":
+            extra_delivs = []
+            for term in ["user manual", "documentation guide", "essay", "blog post"]:
+                if term in cand_lower and term not in orig_lower:
+                    extra_delivs.append(term)
+            if extra_delivs:
+                hallucinations.append(f"Unrequested deliverable artifact(s): {', '.join(extra_delivs)}")
 
         if hallucinations:
             return ValidationResult(

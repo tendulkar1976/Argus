@@ -7,9 +7,10 @@ Enforces Part A Zero-Hardcoding standard:
 """
 
 import json
-from typing import List, Union
+from typing import List, Union, Optional
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
 
 
 class Settings(BaseSettings):
@@ -44,6 +45,17 @@ class Settings(BaseSettings):
     # Optimization & Token Estimation Heuristics
     CHARS_PER_TOKEN_HEURISTIC: float = 4.0
     MAX_VALIDATION_RETRY_ATTEMPTS: int = 1
+
+    # Frontier OpenAI Provider Settings (Phase 4.1 & 4.2)
+    ENABLE_UPSTREAM_DISPATCH: bool = False
+    OPENAI_API_KEY: Optional[str] = None
+    OPENAI_BASE_URL: Optional[str] = None
+    OPENAI_MODEL: str = "gpt-6.1-sol"
+    OPENAI_TIMEOUT_SECONDS: float = 60.0
+    OPENAI_MAX_RETRIES: int = 2
+    OPENAI_REASONING_EFFORT: Optional[str] = "medium"
+
+
 
     CORS_ORIGINS: Union[List[str], str] = [
         "http://localhost:5173",

@@ -47,22 +47,23 @@ class PromptRewriter:
         strategy_directives = {
             "compress": (
                 "\nOPTIMIZATION STRATEGY: COMPRESS\n"
-                "- Aggressively eliminate circular repetitions, filler phrases, and verbose wording.\n"
-                "- Convert passive phrasing into concise, direct imperative instructions.\n"
-                "- Maintain every technical constraint, functional operation, and behavior without loss."
+                "- Convert wordy subordinate clauses or passive phrasing into direct, compact imperative instructions (e.g. 'Write a [deliverable] to read [file], calculate [metric], and save [output]').\n"
+                "- Eliminate circular repetitions, filler phrases, and verbose wording to minimize prompt length.\n"
+                "- Maintain every technical constraint, functional operation, filename, and prohibition without loss."
             ),
             "clarify": (
                 "\nOPTIMIZATION STRATEGY: CLARIFY\n"
-                "- Transform vague or underspecified requests into concrete, actionable specifications.\n"
-                "- Specify standard functional steps, calculations, edge-case handling, and runnable deliverable expectations.\n"
-                "- NEVER ask the user for data or ask clarifying questions; assume standard inputs and specify the implementation.\n"
-                "- DO NOT invent arbitrary libraries or mandatory JSON outputs unless requested."
+                "- Transform brief, open-ended, or underspecified requests into a concrete, well-scoped prompt for downstream execution.\n"
+                "- For conceptual explanations or overviews, explicitly specify the target audience level, core technical principles to address, and practical context.\n"
+                "- Frame the output directly as an imperative prompt for the downstream AI (e.g., 'Explain [topic] to [audience], covering [key principles] and practical distinctions.').\n"
+                "- NEVER ask the user questions or request user clarification. Assume standard inputs and specify implementation details.\n"
+                "- DO NOT invent arbitrary libraries, execution tasks, or mandatory JSON outputs unless requested."
             ),
             "structure": (
                 "\nOPTIMIZATION STRATEGY: STRUCTURE\n"
-                "- Organize instructions using compact bullet points or headings where it materially improves clarity.\n"
-                "- Prefer compact, direct structure over generic boilerplate templates.\n"
-                "- Maintain every functional step, operation, constraint, and deliverable."
+                "- Organize instructions into clean, compact bullet points grouped logically by workflow (e.g., Ingestion, Processing, Output, Constraints).\n"
+                "- Format each operation into a distinct, concise list item for maximum readability and logical flow.\n"
+                "- Maintain every functional step, operation, constraint, filename, and deliverable."
             ),
             "enrich": (
                 "\nOPTIMIZATION STRATEGY: ENRICH\n"
@@ -79,15 +80,16 @@ class PromptRewriter:
         profile_modifiers = {
             "balanced": (
                 "- Maintain natural technical prose flow and clear sentence structure.\n"
-                "- Expand only when adding essential functional clarity. Prefer concise wording when the prompt is already clear."
+                "- Clarify with concrete technical scope when the prompt is brief or underspecified; prefer concise wording when already detailed."
             ),
             "concise": (
                 "- Prioritize high brevity and direct imperative phrasing.\n"
-                "- Remove redundant expressions. Do NOT add new requirements merely to make the prompt look complete."
+                "- Tighten phrasing into compact instructions to minimize token count.\n"
+                "- Retain 100% of required operations, filenames, prohibitions, and constraints. Do NOT expand or add new requirements."
             ),
             "structure": (
-                "- Use concise headings or bullet points only when they materially improve clarity for complex prompts.\n"
-                "- Prefer compact structure over generic boilerplate templates."
+                "- Format the prompt into clean, compact bullet points or labeled workflow steps.\n"
+                "- Break multi-step operations into distinct, structured list items."
             ),
         }
 

@@ -11,6 +11,12 @@ from .optimizer import (
     OllamaStatusResponse,
     TokenEstimation,
 )
+from .gateway import (
+    GatewayDispatchRequest,
+    GatewayDispatchResponse,
+    GatewaySavingsTelemetry,
+    GatewayUsageTelemetry,
+)
 
 __all__ = [
     "HealthResponse",
@@ -22,4 +28,9 @@ __all__ = [
     "OptimizeResponse",
     "OllamaStatusResponse",
     "TokenEstimation",
+    "GatewayDispatchRequest",
+    "GatewayDispatchResponse",
+    "GatewaySavingsTelemetry",
+    "GatewayUsageTelemetry",
 ]
+
