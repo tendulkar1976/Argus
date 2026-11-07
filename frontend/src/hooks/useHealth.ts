@@ -29,11 +29,12 @@ export function useHealth(autoCheck = false): UseHealthReturn {
 
   useEffect(() => {
     let mounted = true;
-    if (autoCheck) {
+    const check = () => {
       apiService.getHealth()
         .then((data) => {
           if (mounted) {
             setHealth(data);
+            setError(null);
             setIsLoading(false);
           }
         })
@@ -43,6 +44,15 @@ export function useHealth(autoCheck = false): UseHealthReturn {
             setIsLoading(false);
           }
         });
+    };
+
+    if (autoCheck) {
+      check();
+      const interval = setInterval(check, 5000);
+      return () => {
+        mounted = false;
+        clearInterval(interval);
+      };
     }
     return () => {
       mounted = false;

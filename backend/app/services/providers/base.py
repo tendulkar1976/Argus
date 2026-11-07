@@ -130,3 +130,13 @@ class BaseLLMProvider(ABC):
         """
         pass
 
+    async def check_availability(self) -> bool:
+        """Check if provider is online and available. Defaults to is_configured()."""
+        return self.is_configured()
+
+    def get_capabilities(self, model_id: Optional[str] = None) -> Optional[Any]:
+        """Return registered capability specification for target model, if available."""
+        from app.services.routing.registry import ModelCapabilityRegistry
+        target = model_id or self.model
+        return ModelCapabilityRegistry.get_model(target)
+

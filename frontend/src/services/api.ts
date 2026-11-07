@@ -8,6 +8,8 @@ import {
   OllamaStatus,
   OptimizationResult,
   OptimizeRequestPayload,
+  DualExecutionRequestPayload,
+  DualExecutionResult,
 } from '@/types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
@@ -159,6 +161,106 @@ export class ApiService {
       model: data.model,
       timestamp: data.timestamp,
       isSimulated: false,
+    };
+  }
+
+  /**
+   * Dual Prompt Execution & Explainable Comparison (Phase 11.1)
+   */
+  async comparePrompt(payload: DualExecutionRequestPayload): Promise<DualExecutionResult> {
+    let response: Response;
+    try {
+      response = await fetch(`${this.baseUrl}/compare`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt: payload.prompt,
+          mode: payload.mode || 'balanced',
+          target_model: payload.target_model || 'gemini-2.0-flash',
+          system_prompt: payload.system_prompt || null,
+          temperature: payload.temperature ?? 0.2,
+          max_tokens: payload.max_tokens || null,
+          run_comparison: payload.run_comparison ?? true,
+        }),
+      });
+    } catch (networkErr) {
+      throw new Error(
+        `Failed to reach Argus backend at ${this.baseUrl}. Ensure the FastAPI server is running.`
+      );
+    }
+
+    if (!response.ok) {
+      let errorMessage = `Dual comparison failed (HTTP ${response.status})`;
+      try {
+        const errorJson = await response.json();
+        if (errorJson?.error?.message) {
+          errorMessage = errorJson.error.message;
+        } else if (errorJson?.detail) {
+          errorMessage =
+            typeof errorJson.detail === 'string'
+              ? errorJson.detail
+              : JSON.stringify(errorJson.detail);
+        }
+      } catch {
+        // Fall back
+      }
+      throw new Error(errorMessage);
+    }
+
+    const data = await response.json();
+    const opt = data.optimization;
+
+    const mappedOptimization: OptimizationResult = {
+      originalPrompt: opt.original_prompt,
+      optimizedPrompt: opt.optimized_prompt,
+      mode: opt.mode,
+      targetModel: opt.target_model,
+      taskCategory: opt.task_category || 'general',
+      strategy: opt.strategy || 'compress',
+      appliedStrategy: opt.applied_strategy || opt.strategy || 'compress',
+      outcome: opt.outcome || (opt.validation_status === 'fallback' ? 'fallback' : opt.is_preserved ? 'unchanged_original' : 'validated_rewrite'),
+      lengthResult: opt.length_result || (opt.char_delta < 0 ? 'compressed' : opt.char_delta > 0 ? 'expanded' : 'unchanged'),
+      validationStatus: opt.validation_status || 'passed',
+      isPreserved: Boolean(opt.is_preserved),
+      primaryAction: opt.primary_action,
+      primaryDeliverable: opt.primary_deliverable,
+      explicitConstraints: opt.explicit_constraints || [],
+      requiredOperations: opt.required_operations || [],
+      originalMetrics: {
+        charCount: opt.original_metrics?.char_count ?? 0,
+        estimatedTokens: opt.original_metrics?.estimated_tokens ?? 0,
+      },
+      optimizedMetrics: {
+        charCount: opt.optimized_metrics?.char_count ?? 0,
+        estimatedTokens: opt.optimized_metrics?.estimated_tokens ?? 0,
+      },
+      tokenReductionPercent: opt.token_reduction_percent ?? 0,
+      tokenChangePercent: opt.token_change_percent ?? 0,
+      tokenSavings: opt.token_savings ?? 0,
+      charDelta: opt.char_delta ?? 0,
+      preservedConstraints: opt.preserved_constraints || [],
+      executionTimeMs: opt.execution_time_ms ?? 0,
+      model: opt.model,
+      timestamp: opt.timestamp,
+      isSimulated: false,
+    };
+
+    return {
+      request_id: data.request_id,
+      timestamp: data.timestamp,
+      target_model: data.target_model,
+      target_provider: data.target_provider,
+      is_equivalent_conditions: data.is_equivalent_conditions,
+      equivalence_notes: data.equivalence_notes,
+      optimization: mappedOptimization,
+      transformations: data.transformations || [],
+      original_execution: data.original_execution,
+      optimized_execution: data.optimized_execution,
+      comparison: data.comparison,
+      performance: data.performance,
     };
   }
 }

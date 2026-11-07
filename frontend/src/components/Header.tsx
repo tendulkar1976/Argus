@@ -1,13 +1,15 @@
 import React from 'react';
 import { StatusBadge } from './StatusBadge';
 import { OllamaStatus } from '@/types';
-import { Shield, Sparkles, Cpu, Server, Activity } from 'lucide-react';
+import { Shield, Sparkles, Cpu, Server, Activity, History } from 'lucide-react';
 
 export interface HeaderProps {
   apiStatus?: 'online' | 'offline' | 'idle';
   ollamaStatus?: OllamaStatus | null;
   activeTab?: 'workspace' | 'system';
   onTabChange?: (tab: 'workspace' | 'system') => void;
+  onToggleHistory?: () => void;
+  historyCount?: number;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -15,11 +17,13 @@ export const Header: React.FC<HeaderProps> = ({
   ollamaStatus,
   activeTab = 'workspace',
   onTabChange,
+  onToggleHistory,
+  historyCount = 0,
 }) => {
   const isOllamaReady = Boolean(ollamaStatus?.connected && ollamaStatus?.model_installed);
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-white/[0.08] bg-[#070c17]/95 backdrop-blur-md">
+    <header className="sticky top-0 z-40 w-full border-b border-white/[0.08] bg-[#070c17]/95 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="h-16 flex items-center justify-between gap-4">
           {/* Brand & Identity */}
@@ -31,7 +35,7 @@ export const Header: React.FC<HeaderProps> = ({
               <div className="flex items-center gap-2">
                 <span className="font-bold text-slate-100 tracking-tight text-lg">Argus</span>
                 <span className="text-[10px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-400 border border-cyan-500/20">
-                  Phase 3
+                  Phase 11
                 </span>
               </div>
               <p className="text-[11px] text-slate-400 hidden sm:block tracking-wide">
@@ -70,9 +74,27 @@ export const Header: React.FC<HeaderProps> = ({
             </nav>
           )}
 
-          {/* Connection Indicators */}
+          {/* Action & Connection Indicators */}
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* Real Local Optimizer Status (Phase 3 Active Connection) */}
+            {/* History Toggle Button */}
+            {onToggleHistory && (
+              <button
+                type="button"
+                onClick={onToggleHistory}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-300 hover:text-cyan-200 bg-[#0c1424] hover:bg-[#131f38] border border-white/5 hover:border-cyan-500/30 transition-all cursor-pointer"
+                title="Toggle Agentic History"
+              >
+                <History className="w-3.5 h-3.5 text-cyan-400" />
+                <span className="hidden sm:inline">History</span>
+                {historyCount > 0 && (
+                  <span className="px-1.5 py-0.2 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-500/20 text-[10px] font-mono">
+                    {historyCount}
+                  </span>
+                )}
+              </button>
+            )}
+
+            {/* Real Local Optimizer Status */}
             <div
               className={`hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-mono border ${
                 isOllamaReady
@@ -92,14 +114,14 @@ export const Header: React.FC<HeaderProps> = ({
               </span>
             </div>
 
-            {/* Main LLM Gateway Status (Marked clearly as Disconnected in Phase 3) */}
+            {/* Frontier Gateway Status */}
             <div
               className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-mono bg-[#0c1424] border border-white/5 text-slate-400"
-              title="Cloud frontier LLM gateway scheduled for Phase 4"
+              title="Credentialed Frontier Gateway (Gemini, DeepSeek)"
             >
-              <Server className="w-3.5 h-3.5 text-slate-500" />
-              <span>Main LLM:</span>
-              <span className="text-slate-500 font-sans text-[11px]">Disconnected (Phase 4)</span>
+              <Server className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Router:</span>
+              <span className="text-cyan-300 font-sans text-[11px]">Gemini &bull; DeepSeek</span>
             </div>
 
             {/* FastAPI Backend Status */}
@@ -123,8 +145,8 @@ export const Header: React.FC<HeaderProps> = ({
             <span>Local LLM: {isOllamaReady ? 'Online (qwen2.5:1.5b)' : 'Offline'}</span>
           </div>
           <div className="flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-slate-500" />
-            <span>Main Gateway: Standby</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+            <span>Router: Active</span>
           </div>
         </div>
       </div>

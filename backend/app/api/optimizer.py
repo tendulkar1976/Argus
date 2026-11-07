@@ -6,6 +6,10 @@ from app.schemas.optimizer import (
     OptimizeResponse,
     OllamaStatusResponse,
 )
+from app.schemas.comparison import (
+    DualExecutionRequest,
+    DualExecutionResponse,
+)
 from app.services.ollama_service import (
     OllamaService,
     OllamaServiceError,
@@ -13,6 +17,8 @@ from app.services.ollama_service import (
     OllamaTimeoutError,
     OllamaResponseError,
 )
+from app.services.providers.base import ProviderError
+from app.services.dual_execution_service import DualExecutionService
 
 router = APIRouter(tags=["Prompt Optimization"])
 
@@ -32,6 +38,38 @@ async def optimize_prompt(request: OptimizeRequest) -> OptimizeResponse:
         raise HTTPException(
             status_code=exc.status_code,
             detail=exc.message,
+        ) from exc
+
+
+@router.post(
+    "/compare",
+    response_model=DualExecutionResponse,
+    status_code=status.HTTP_200_OK,
+    summary="A/B Dual Execution & Explainable Comparison",
+    description=(
+        "Optimizes an input prompt, dispatches both original and optimized versions "
+        "to the exact same configured frontier LLM, captures independent execution metrics, "
+        "generates transformation explanations, and evaluates response quality across 9 dimensions."
+    ),
+)
+async def compare_prompts(request: DualExecutionRequest) -> DualExecutionResponse:
+    """Execute original vs optimized prompt A/B comparison."""
+    try:
+        return await DualExecutionService.execute(request)
+    except (OllamaConnectionError, OllamaTimeoutError, OllamaResponseError, OllamaServiceError) as exc:
+        raise HTTPException(
+            status_code=exc.status_code,
+            detail=exc.message,
+        ) from exc
+    except ProviderError as exc:
+        raise HTTPException(
+            status_code=exc.status_code,
+            detail=exc.message,
+        ) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Dual execution comparison failed: {str(exc)}",
         ) from exc
 
 

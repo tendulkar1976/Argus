@@ -120,10 +120,10 @@ export const OptimizationControls: React.FC<OptimizationControlsProps> = ({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label htmlFor="target-model-select" className="text-xs font-semibold text-slate-200">
-                Target Main LLM (Illustrative)
+                Target Frontier Model
               </label>
-              <span className="text-[10px] font-mono uppercase tracking-wider text-slate-500 bg-[#080d19] px-1.5 py-0.5 rounded border border-white/5">
-                Phase 4 Gateway
+              <span className="text-[10px] font-mono uppercase tracking-wider text-cyan-400 bg-cyan-950/60 px-1.5 py-0.5 rounded border border-cyan-500/20">
+                Credentialed Router
               </span>
             </div>
 
@@ -135,14 +135,13 @@ export const OptimizationControls: React.FC<OptimizationControlsProps> = ({
             >
               {ILLUSTRATIVE_MODELS.map((model) => (
                 <option key={model.id} value={model.id} className="bg-[#0b1324] text-slate-200">
-                  {model.name} ({model.provider}) &bull; {model.contextWindow}
+                  {model.name} ({model.provider}) &bull; {model.contextWindow} &bull; ${model.inputPricePerMillionUsd.toFixed(2)}/1M
                 </option>
               ))}
             </select>
 
             <p className="text-[11px] text-slate-500 leading-relaxed">
-              Select the intended destination model. In Phase 4, Argus will tailor the compression
-              dialect to the specific frontier model's tokenizer.
+              Target model for token optimization. In Phase 6–10, Argus routes and executes via credentialed Gemini, DeepSeek, or local Ollama.
             </p>
           </div>
 

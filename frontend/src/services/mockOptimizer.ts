@@ -13,6 +13,7 @@ import {
   TokenEstimation,
   ExamplePrompt,
   ModelOption,
+  CREDENTIALED_MODELS,
 } from '@/types';
 
 /**
@@ -32,38 +33,9 @@ export function estimateTokens(text: string): TokenEstimation {
 }
 
 /**
- * Illustrative Target Model Options (Phase 4 Gateway Options)
+ * Credentialed Target Model Options (Restricted strictly to Gemini, DeepSeek, and local Ollama)
  */
-export const ILLUSTRATIVE_MODELS: ModelOption[] = [
-  {
-    id: 'gpt-4o',
-    name: 'GPT-4o',
-    provider: 'OpenAI',
-    contextWindow: '128k',
-    isIllustrative: true,
-  },
-  {
-    id: 'claude-3-5-sonnet',
-    name: 'Claude 3.5 Sonnet',
-    provider: 'Anthropic',
-    contextWindow: '200k',
-    isIllustrative: true,
-  },
-  {
-    id: 'gemini-1-5-pro',
-    name: 'Gemini 1.5 Pro',
-    provider: 'Google Cloud',
-    contextWindow: '2M',
-    isIllustrative: true,
-  },
-  {
-    id: 'deepseek-v3',
-    name: 'DeepSeek V3',
-    provider: 'DeepSeek',
-    contextWindow: '64k',
-    isIllustrative: true,
-  },
-];
+export const ILLUSTRATIVE_MODELS: ModelOption[] = CREDENTIALED_MODELS;
 
 /**
  * Curated Example Prompts for Developer Evaluation

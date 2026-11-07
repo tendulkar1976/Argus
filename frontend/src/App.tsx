@@ -1,12 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Header } from '@/components/Header';
 import { WorkspacePage } from '@/pages/WorkspacePage';
 import { HomePage } from '@/pages/HomePage';
 import { useHealth } from '@/hooks/useHealth';
 import { useOllamaStatus } from '@/hooks/useOllamaStatus';
+import { OptimizationSession } from '@/types';
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'workspace' | 'system'>('workspace');
+  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
+  const [sessions, setSessions] = useState<OptimizationSession[]>(() => {
+    try {
+      const raw = localStorage.getItem('argus_optimization_sessions');
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
+
   const { health, error: healthError } = useHealth(true);
   const { status: ollamaStatus } = useOllamaStatus(true);
 
@@ -20,10 +31,19 @@ export const App: React.FC = () => {
         ollamaStatus={ollamaStatus}
         activeTab={activeTab}
         onTabChange={setActiveTab}
+        onToggleHistory={() => setIsSidebarOpen((prev) => !prev)}
+        historyCount={sessions.length}
       />
       <main className="flex-1">
         {activeTab === 'workspace' ? (
-          <WorkspacePage ollamaStatus={ollamaStatus} />
+          <WorkspacePage
+            ollamaStatus={ollamaStatus}
+            isSidebarOpen={isSidebarOpen}
+            onCloseSidebar={() => setIsSidebarOpen(false)}
+            sessions={sessions}
+            onSessionsChange={setSessions}
+            onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
+          />
         ) : (
           <HomePage />
         )}
@@ -36,7 +56,7 @@ export const App: React.FC = () => {
             <span className="text-slate-400">Understand. Optimize. Execute.</span>
           </div>
           <div className="flex items-center gap-4 font-mono text-[11px] text-slate-400">
-            <span>Phase 3: Real Local Inference</span>
+            <span>Phase 11: Prompt Optimization Workspace</span>
             <span className="text-slate-600">&bull;</span>
             <span className={isOllamaReady ? 'text-cyan-400' : 'text-slate-400'}>
               Local LLM: {isOllamaReady ? `Active (${ollamaStatus?.model})` : 'Offline'}

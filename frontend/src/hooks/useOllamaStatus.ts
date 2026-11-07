@@ -34,6 +34,10 @@ export function useOllamaStatus(autoCheck: boolean = true): UseOllamaStatusRetur
   useEffect(() => {
     if (autoCheck) {
       void checkStatus();
+      const interval = setInterval(() => {
+        void checkStatus();
+      }, 5000);
+      return () => clearInterval(interval);
     }
   }, [autoCheck, checkStatus]);
 
